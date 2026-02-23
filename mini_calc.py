@@ -9,7 +9,7 @@ import math
 current_memory = 0.0
 
 def save_entry(action, result):
-    """Logs every calculation for professional audit trails."""
+    """Logs every calculation to a CSV for professional audit trails."""
     file_path = os.path.expanduser('~/python_projects/tax_log.csv')
     with open(file_path, 'a', newline='') as f:
         writer = csv.writer(f)
@@ -25,7 +25,7 @@ def calculate(event=None):
     except:
         messagebox.showerror("Error", "Invalid math")
 
-def apply_percent():
+def apply_percent(event=None):
     try:
         val = entry.get()
         if '*' in val:
@@ -39,7 +39,7 @@ def apply_percent():
     except:
         messagebox.showerror("Error", "Use format: Value * Percent")
 
-def toggle_sign():
+def toggle_sign(event=None):
     try:
         val = entry.get()
         if val.startswith('-'): entry.delete(0, 1)
@@ -64,16 +64,15 @@ def apply_gst(rate, reverse=False):
     except:
         messagebox.showerror("Error", "Enter a numeric value")
 
-def finance_op(op):
+def finance_op(op, event=None):
     try:
         val = float(entry.get())
         if op == "sqrt": res = math.sqrt(val)
         elif op == "sq": res = val ** 2
         label_res.config(text=f"Result: {res}")
-    except:
-        messagebox.showerror("Error", "Enter a number first")
+    except: pass
 
-def memory_op(op):
+def memory_op(op, event=None):
     global current_memory
     try:
         if op == "MR":
@@ -138,11 +137,20 @@ tk.Button(root, text="Clear Screen (Esc)", command=clear_screen, bg="#f44336", f
 label_res = tk.Label(root, text="Result: ", font=("Arial", 11, "bold"), fg="#1565C0", justify="left")
 label_res.pack(pady=10)
 
-# --- RESTORED ALL KEYBOARD BINDINGS ---
+# --- KEYBOARD BINDINGS ---
 entry.focus_force()
 root.bind('<Return>', calculate)
 root.bind('<KP_Enter>', calculate)
 root.bind('<Escape>', clear_screen)
+root.bind('<percent>', apply_percent)
+root.bind('<Control-s>', toggle_sign)
+root.bind('<Alt-p>', lambda e: memory_op("M+"))
+root.bind('<Alt-m>', lambda e: memory_op("M-"))
+root.bind('<Alt-r>', lambda e: memory_op("MR"))
+root.bind('<Alt-c>', lambda e: memory_op("MC"))
+root.bind('<Control-q>', lambda e: finance_op("sqrt"))
+root.bind('<Control-w>', lambda e: finance_op("sq"))
+root.bind('<Control-p>', lambda e: entry.insert(tk.END, "^"))
 root.bind('<F1>', lambda e: apply_gst(5))
 root.bind('<F2>', lambda e: apply_gst(12))
 root.bind('<F3>', lambda e: apply_gst(18))
