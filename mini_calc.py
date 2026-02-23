@@ -91,10 +91,55 @@ def clear_screen(event=None):
     entry.delete(0, tk.END)
     label_res.config(text="Result: ")
 
+def open_history():
+    history_win = tk.Toplevel(root)
+    history_win.title("Tax Audit Log - Search")
+    history_win.geometry("500x450")
+    tk.Label(history_win, text="Search Audit Log (Keyword/Date):", font=("Arial", 10, "bold")).pack(pady=5)
+    search_entry = tk.Entry(history_win, width=40)
+    search_entry.pack(pady=5)
+    listbox = tk.Listbox(history_win, width=60, height=15)
+    listbox.pack(pady=10, padx=10)
+    def perform_search():
+        listbox.delete(0, tk.END)
+        query = search_entry.get().lower()
+        file_path = os.path.expanduser('~/python_projects/tax_log.csv')
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                for line in f:
+                    if query in line.lower(): listbox.insert(tk.END, line.strip())
+    tk.Button(history_win, text="Search", command=perform_search, bg="#607D8B", fg="white").pack()
+
+def show_monthly_summary():
+    summary_win = tk.Toplevel(root)
+    summary_win.title("Monthly GST Summary")
+    summary_win.geometry("400x300")
+    tk.Label(summary_win, text="Enter Month (YYYY-MM):", font=("Arial", 10)).pack(pady=10)
+    month_entry = tk.Entry(summary_win)
+    month_entry.insert(0, datetime.now().strftime("%Y-%m"))
+    month_entry.pack(pady=5)
+    res_label = tk.Label(summary_win, text="", font=("Arial", 11, "bold"), fg="#2E7D32")
+    res_label.pack(pady=20)
+    def calculate_summary():
+        target, total_gst = month_entry.get(), 0.0
+        file_path = os.path.expanduser('~/python_projects/tax_log.csv')
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    if row[0].startswith(target) and "Total:" in row[2]:
+                        try:
+                            # Parse tax from log string
+                            base_val = float(row[2].split("Total:")[1].strip())
+                            total_gst += base_val
+                        except: continue
+            res_label.config(text=f"Total Taxed Volume for {target}: ₹{total_gst:.2f}")
+    tk.Button(summary_win, text="Generate Summary", command=calculate_summary, bg="#2E7D32", fg="white").pack()
+
 # GUI Construction
 root = tk.Tk()
 root.title("CA Pro: GST & Financial Calculator")
-root.geometry("480x880")
+root.geometry("480x950")
 
 tk.Label(root, text="Financial Input / Formula:", font=("Arial", 10)).pack(pady=10)
 entry = tk.Entry(root, font=("Arial", 14), justify='center')
@@ -133,7 +178,12 @@ for i, rate in enumerate(rates):
     tk.Button(f_frame, text=f"{rate}%", command=lambda r=rate: apply_gst(r), bg="#2E7D32", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
     tk.Button(r_frame, text=f"Rev {rate}%", command=lambda r=rate: apply_gst(r, True), bg="#6A1B9A", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
 
-tk.Button(root, text="Clear Screen (Esc)", command=clear_screen, bg="#f44336", fg="white", height=2, width=35).pack(pady=15)
+tk.Button(root, text="Clear Screen (Esc)", command=clear_screen, bg="#f44336", fg="white", height=2, width=35).pack(pady=10)
+
+# --- AUDIT TOOLS SECTION (NEW) ---
+tk.Button(root, text="View Audit Log (Search)", command=open_history, bg="#546E7A", fg="white", width=35).pack(pady=5)
+tk.Button(root, text="Monthly Tax Summary", command=show_monthly_summary, bg="#388E3C", fg="white", width=35).pack(pady=5)
+
 label_res = tk.Label(root, text="Result: ", font=("Arial", 11, "bold"), fg="#1565C0", justify="left")
 label_res.pack(pady=10)
 
