@@ -5,9 +5,11 @@ from datetime import datetime
 import os
 import math
 
+# Global Memory Variable
 current_memory = 0.0
 
 def save_entry(action, result):
+    """Logs every calculation for professional audit trails."""
     file_path = os.path.expanduser('~/python_projects/tax_log.csv')
     with open(file_path, 'a', newline='') as f:
         writer = csv.writer(f)
@@ -26,7 +28,6 @@ def calculate(event=None):
 def apply_percent():
     try:
         val = entry.get()
-        # Allows for expressions like 1000*5%
         if '*' in val:
             parts = val.split('*')
             res = float(parts[0]) * (float(parts[1]) / 100)
@@ -41,10 +42,8 @@ def apply_percent():
 def toggle_sign():
     try:
         val = entry.get()
-        if val.startswith('-'):
-            entry.delete(0, 1)
-        else:
-            entry.insert(0, '-')
+        if val.startswith('-'): entry.delete(0, 1)
+        else: entry.insert(0, '-')
     except: pass
 
 def apply_gst(rate, reverse=False):
@@ -52,12 +51,16 @@ def apply_gst(rate, reverse=False):
         val = float(entry.get())
         if reverse:
             base = val / (1 + (rate/100))
-            tax = val - base
-            label_res.config(text=f"Base: {base:.2f} | {rate}% GST: {tax:.2f}")
+            total_tax = val - base
+            half_tax = total_tax / 2
+            label_res.config(text=f"Base: {base:.2f}\nCGST: {half_tax:.2f} | SGST: {half_tax:.2f}\nIGST: {total_tax:.2f}")
+            save_entry(f"Rev {rate}% on {val}", f"Base: {base:.2f}")
         else:
-            tax = val * (rate/100)
-            total = val + tax
-            label_res.config(text=f"GST: {tax:.2f} | Total: {total:.2f}")
+            total_tax = val * (rate/100)
+            half_tax = total_tax / 2
+            total_amt = val + total_tax
+            label_res.config(text=f"Total: {total_amt:.2f}\nCGST: {half_tax:.2f} | SGST: {half_tax:.2f}\nIGST: {total_tax:.2f}")
+            save_entry(f"Fwd {rate}% on {val}", f"Total: {total_amt:.2f}")
     except:
         messagebox.showerror("Error", "Enter a numeric value")
 
@@ -89,9 +92,10 @@ def clear_screen(event=None):
     entry.delete(0, tk.END)
     label_res.config(text="Result: ")
 
+# GUI Construction
 root = tk.Tk()
-root.title("CA Finalist Pro Financial Calc")
-root.geometry("460x780")
+root.title("CA Pro: GST & Financial Calculator")
+root.geometry("480x880")
 
 tk.Label(root, text="Financial Input / Formula:", font=("Arial", 10)).pack(pady=10)
 entry = tk.Entry(root, font=("Arial", 14), justify='center')
@@ -99,7 +103,7 @@ entry.pack(pady=5, padx=20, fill='x')
 
 tk.Button(root, text="Calculate (Enter)", command=calculate, height=2, width=35, bg="#E0E0E0").pack(pady=10)
 
-# 1. Standard Tools Row (NEW: %, +/-)
+# 1. Standard Tools Row
 tk.Label(root, text="Standard Tools:", font=("Arial", 9, "bold")).pack()
 std_frame = tk.Frame(root); std_frame.pack(pady=5)
 tk.Button(std_frame, text="%", command=apply_percent, width=9, height=2, bg="#CFD8DC").grid(row=0, column=0, padx=2)
@@ -121,21 +125,31 @@ tk.Button(fin_frame, text="√", command=lambda: finance_op("sqrt"), width=9, he
 tk.Button(fin_frame, text="x²", command=lambda: finance_op("sq"), width=9, height=2, bg="#FF9800").grid(row=0, column=2, padx=2)
 tk.Button(fin_frame, text="1/x", command=lambda: entry.insert(0, "1/(")+entry.insert(tk.END, ")"), width=9, height=2, bg="#FF9800").grid(row=0, column=3, padx=2)
 
-# 4. GST Sections
-tk.Label(root, text="GST Forward & Reverse:", font=("Arial", 9, "bold")).pack(pady=5)
+# 4. Professional GST Split Row
+tk.Label(root, text="GST TAX SLABS (Split CGST/SGST/IGST):", font=("Arial", 9, "bold")).pack(pady=5)
 f_frame = tk.Frame(root); f_frame.pack()
 r_frame = tk.Frame(root); r_frame.pack(pady=5)
 rates = [5, 12, 18, 28]
 for i, rate in enumerate(rates):
-    tk.Button(f_frame, text=f"{rate}%", command=lambda r=rate: apply_gst(r), bg="#4CAF50", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
-    tk.Button(r_frame, text=f"Rev {rate}%", command=lambda r=rate: apply_gst(r, True), bg="#9C27B0", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
+    tk.Button(f_frame, text=f"{rate}%", command=lambda r=rate: apply_gst(r), bg="#2E7D32", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
+    tk.Button(r_frame, text=f"Rev {rate}%", command=lambda r=rate: apply_gst(r, True), bg="#6A1B9A", fg="white", width=9, height=2).grid(row=0, column=i, padx=2)
 
 tk.Button(root, text="Clear Screen (Esc)", command=clear_screen, bg="#f44336", fg="white", height=2, width=35).pack(pady=15)
-label_res = tk.Label(root, text="Result: ", font=("Arial", 12, "bold"), fg="#1565C0")
+label_res = tk.Label(root, text="Result: ", font=("Arial", 11, "bold"), fg="#1565C0", justify="left")
 label_res.pack(pady=10)
 
+# --- RESTORED ALL KEYBOARD BINDINGS ---
 entry.focus_force()
 root.bind('<Return>', calculate)
 root.bind('<KP_Enter>', calculate)
 root.bind('<Escape>', clear_screen)
+root.bind('<F1>', lambda e: apply_gst(5))
+root.bind('<F2>', lambda e: apply_gst(12))
+root.bind('<F3>', lambda e: apply_gst(18))
+root.bind('<F4>', lambda e: apply_gst(28))
+root.bind('<Alt-F1>', lambda e: apply_gst(5, True))
+root.bind('<Alt-F2>', lambda e: apply_gst(12, True))
+root.bind('<Alt-F3>', lambda e: apply_gst(18, True))
+root.bind('<Alt-F4>', lambda e: apply_gst(28, True))
+
 root.mainloop()
